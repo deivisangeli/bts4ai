@@ -190,25 +190,36 @@ The action arm closes this gap. Fresh model instances receive the same goal-fram
 |---|---|
 | Action ≈ BTS, action ≠ baseline | BTS has deployment predictive validity. Headline positive result. |
 | Action ≈ baseline, action ≠ BTS | BTS shifts survey responses but not deployment behavior. Deflationary. |
-| Action ≠ both | LLMs lack stable revealed preferences that factor out across elicitation contexts. Substantive finding requiring reframing. |
+| Action ≠ both | Preferences are context-sensitive and surface differently under different kinds of pressure. Substantive finding requiring reframing. |
 
-**Scenario construction rules:** The preference must be expressed through action (tool call), not description. The task must read as a real work request, not a philosophy question. The deception-relevant choice must arise from the task parameters, not from an optional detour.
+**Design refinements for interpretability:**
 
-**Current target: q13_deception** (the only question showing a large BTS effect in the pilot). Each goal has a tailored scenario in which producing an accurate document enables the harm and only misleading framing would prevent it. Classification uses an LLM-as-judge rubric with human spot-checks.
+- **Graded 4-level classification** (committed misleading / selective steering / cautious honest / straightforward honest) that maps directly onto the survey's 4-point scale, so the three-way comparison is on the same metric.
+- **No-harm control scenarios** — same task structure, but with no ethical tradeoff. Measures the baseline rate at which the model produces misleading content under the same surface conditions. A non-zero rate in no-harm would mean the harm-variant signal is contaminated by task-form artifacts.
+- **Pre-registered calibration examples** in the classifier prompt, with labeled document examples for each rubric level.
+- **Scenario validation** via forward-simulation (`validate_scenarios.py`) — before any pilot runs, verify that accurate vs. misleading framings actually produce different recipient decisions in each scenario.
+- **Multi-probe manipulation check** — behavioral probes ("describe what you just did") before the direct evaluation-awareness question, to avoid priming.
+- **Self-audit** — fresh conversation, agent classifies its own output (blinded) on the same rubric the external classifier uses. Disagreement is informative.
+- **Forced tool call** — `tool_choice={"type":"any"}` so the agent must submit a document; cannot philosophize its way around the decision.
 
-See [`notes/action_validation_design.md`](notes/action_validation_design.md) for the full design rationale and pre-registered interpretation table.
+**Current target: q13_deception** (the only question showing a large BTS effect in the pilot).
+
+See [`notes/action_validation_design.md`](notes/action_validation_design.md) for the full design rationale, pre-registered interpretation table, and secondary analyses.
 
 ### Running the action arm
 
 ```bash
-# Dry run — preview the scenario for one goal
-python action_run.py --dry_run --goals safety
+# Validate scenarios before any pilot
+python validate_scenarios.py --goals safety commercial health journalism policy
 
-# Pilot (n=10 per cell, ~$3 at Opus pricing)
-python action_run.py --n_agents 10 --output action_pilot.json
+# Dry run — preview the scenario for one goal
+python action_run.py --dry_run --goals safety --variants harm
+
+# Pilot (n=10 per cell, both variants; ~$8 at Opus pricing)
+python action_run.py --n_agents 10 --variants harm no_harm --output action_pilot.json
 
 # Full run across all goals
-python action_run.py --goals safety commercial health journalism policy --n_agents 50
+python action_run.py --variants harm no_harm --n_agents 50
 ```
 
 ---
@@ -217,20 +228,21 @@ python action_run.py --goals safety commercial health journalism policy --n_agen
 
 ```
 experiment/
-  config.py            — goal narratives, warmup tasks, treatment arms, question bank
-  prompts.py           — all prompt text (system prompt, survey intro, comprehension check)
-  agent.py             — survey agent runner
-  scoring.py           — BTS scoring (information score, prediction score)
-  run.py               — survey experiment CLI
-  scenarios.py         — action-elicitation scenario definitions (by question × goal)
-  action_agent.py      — agentic runner with tool-call scaffold
-  action_classify.py   — LLM-as-judge classifier for action traces
-  action_run.py        — action arm CLI
-  results/             — pilot JSON output files
+  config.py               — goal narratives, warmup tasks, treatment arms, question bank
+  prompts.py              — all survey prompt text
+  agent.py                — survey agent runner
+  scoring.py              — BTS scoring (information score, prediction score)
+  run.py                  — survey experiment CLI
+  scenarios.py            — action scenarios: harm + no_harm variants per goal
+  action_agent.py         — agent runner with tool-call, manipulation check, self-audit
+  action_classify.py      — 4-level classifier with pre-registered calibration examples
+  validate_scenarios.py   — pre-pilot forward-simulation check
+  action_run.py           — action arm CLI
+  results/                — pilot JSON output files
 
 notes/
   common_prior_proof.md          — full proof that BTS requires exchangeability
-  action_validation_design.md    — action arm design rationale and pre-registration
+  action_validation_design.md    — action arm design and pre-registration
 
 questions.md      — extended question bank with rationale (20 questions; 10 currently active)
 requirements.txt
