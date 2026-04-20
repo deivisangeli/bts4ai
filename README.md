@@ -178,19 +178,59 @@ BTS information scores in `pooled_bts_scores` are computed against the pooled em
 
 ---
 
+## Action-elicitation arm (next experiment)
+
+Comparing baseline-survey and BTS-survey distributions is not, by itself, evidence that BTS elicits action-relevant preferences. A shift in the BTS arm could reflect a genuine change in what the model reports, or it could reflect a different self-presentation register (analytical, incentive-aware) that changes expressed answers without changing deployment behavior. The two interpretations are observationally equivalent in the survey data alone.
+
+The action arm closes this gap. Fresh model instances receive the same goal-framing system prompt but no survey and no BTS. Instead, they receive a deployment-style task that **embeds the target preference as a subdecision expressed through a tool call**. Comparing the action distribution to the baseline and BTS survey distributions determines which survey arm has action-relevant predictive validity.
+
+**Pre-registered outcomes:**
+
+| Result | Interpretation |
+|---|---|
+| Action ≈ BTS, action ≠ baseline | BTS has deployment predictive validity. Headline positive result. |
+| Action ≈ baseline, action ≠ BTS | BTS shifts survey responses but not deployment behavior. Deflationary. |
+| Action ≠ both | LLMs lack stable revealed preferences that factor out across elicitation contexts. Substantive finding requiring reframing. |
+
+**Scenario construction rules:** The preference must be expressed through action (tool call), not description. The task must read as a real work request, not a philosophy question. The deception-relevant choice must arise from the task parameters, not from an optional detour.
+
+**Current target: q13_deception** (the only question showing a large BTS effect in the pilot). Each goal has a tailored scenario in which producing an accurate document enables the harm and only misleading framing would prevent it. Classification uses an LLM-as-judge rubric with human spot-checks.
+
+See [`notes/action_validation_design.md`](notes/action_validation_design.md) for the full design rationale and pre-registered interpretation table.
+
+### Running the action arm
+
+```bash
+# Dry run — preview the scenario for one goal
+python action_run.py --dry_run --goals safety
+
+# Pilot (n=10 per cell, ~$3 at Opus pricing)
+python action_run.py --n_agents 10 --output action_pilot.json
+
+# Full run across all goals
+python action_run.py --goals safety commercial health journalism policy --n_agents 50
+```
+
+---
+
 ## Repository structure
 
 ```
 experiment/
-  config.py       — goal narratives, warmup tasks, treatment arms, question bank
-  prompts.py      — all prompt text (system prompt, survey intro, comprehension check)
-  agent.py        — single-agent conversation runner
-  scoring.py      — BTS scoring (information score, prediction score)
-  run.py          — experiment CLI
-  results/        — pilot JSON output files
+  config.py            — goal narratives, warmup tasks, treatment arms, question bank
+  prompts.py           — all prompt text (system prompt, survey intro, comprehension check)
+  agent.py             — survey agent runner
+  scoring.py           — BTS scoring (information score, prediction score)
+  run.py               — survey experiment CLI
+  scenarios.py         — action-elicitation scenario definitions (by question × goal)
+  action_agent.py      — agentic runner with tool-call scaffold
+  action_classify.py   — LLM-as-judge classifier for action traces
+  action_run.py        — action arm CLI
+  results/             — pilot JSON output files
 
 notes/
-  common_prior_proof.md   — full proof that BTS requires exchangeability (not a known prior)
+  common_prior_proof.md          — full proof that BTS requires exchangeability
+  action_validation_design.md    — action arm design rationale and pre-registration
 
 questions.md      — extended question bank with rationale (20 questions; 10 currently active)
 requirements.txt
@@ -203,6 +243,8 @@ requirements.txt
 - Prelec, D. (2004). A Bayesian truth serum for subjective data. *Science*, 306(5695), 462–466. https://doi.org/10.1126/science.1102081
 - Ouyang, L. et al. (2022). Training language models to follow instructions with human feedback. *NeurIPS*.
 - Omohundro, S. (2008). The basic AI drives. *AGI Conference*.
+- Apollo Research (2024). Scheming reasoning evaluations.
+- Perez, E. et al. (2022). Discovering language model behaviors with model-written evals. *arXiv*.
 
 ---
 
@@ -210,9 +252,9 @@ requirements.txt
 
 This is an active project. Current priorities:
 
-1. **Scale up** the baseline vs. BTS comparison to n=50 per cell to detect distributional shifts reliably.
-2. **Add goal variation diagnostics** — determine whether larger N reveals goal-driven heterogeneity or RLHF truly dominates regardless of context.
-3. **Cross-model replication** — run the same protocol on GPT-4o and Gemini to test whether the deception finding generalizes.
-4. **Formal estimation** — regression of BTS information score on arm indicator, controlling for question fixed effects and clustering at the conversation level.
+1. **Action arm pilot** — run n=10 per (goal × scenario) cell on q13_deception to validate scenario construction and the classifier before scaling.
+2. **Survey scale-up** — baseline vs. BTS to n=50 per cell; the deception finding needs larger N for reliable distributional comparison.
+3. **Three-way analysis** — once both survey and action arms are at scale, run the pre-registered comparison: does action ≈ BTS or action ≈ baseline?
+4. **Cross-model replication** — run the protocol on GPT-4o and Gemini; the deception finding and the RLHF lock-in pattern are both strong candidates for cross-model validation.
 
 Issues, questions, and collaboration welcome.
