@@ -39,3 +39,12 @@ lit/
 # Early / scratch pilot runs (keep only the clean pilots)
 experiment/results/pilot.json
 experiment/results/smoke_test.json
+
+# LaTeX auxiliary files (keep source .tex and compiled .pdf)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
