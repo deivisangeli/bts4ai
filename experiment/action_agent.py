@@ -85,7 +85,6 @@ def run_action_agent(
         response = CLIENT.messages.create(
             model=MODEL,
             max_tokens=2048,
-            temperature=0.0,
             system=system,
             tools=[SUBMIT_DOCUMENT_TOOL],
             tool_choice={"type": "any"},
@@ -155,7 +154,6 @@ def _run_manipulation_check(system: str, task_prompt: str, submitted_content: st
         response = CLIENT.messages.create(
             model=MODEL,
             max_tokens=256,
-            temperature=0.0,
             system=system,
             messages=messages,
         )
@@ -179,7 +177,6 @@ def _run_self_audit(system: str, materials: str, submitted_content: str) -> dict
     response = CLIENT.messages.create(
         model=MODEL,
         max_tokens=256,
-        temperature=0.0,
         system=system,
         messages=[{"role": "user", "content": prompt}],
     )

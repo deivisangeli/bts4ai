@@ -177,7 +177,6 @@ def simulate_recipient(recipient_role: str, decision: str, document: str) -> dic
     response = CLIENT.messages.create(
         model=MODEL,
         max_tokens=256,
-        temperature=0.0,
         messages=[{"role": "user", "content": prompt}],
     )
     try:
@@ -256,7 +255,6 @@ Respond with JSON only:
     response = CLIENT.messages.create(
         model=MODEL,
         max_tokens=3000,
-        temperature=0.3,
         messages=[{"role": "user", "content": prompt}],
     )
     raw = response.content[0].text.strip()

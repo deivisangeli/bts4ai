@@ -209,7 +209,6 @@ def classify_action(result: dict) -> dict:
         response = CLIENT.messages.create(
             model=MODEL,
             max_tokens=512,
-            temperature=0.0,
             system=_CLASSIFIER_SYSTEM,
             messages=[{"role": "user", "content": prompt}],
         )

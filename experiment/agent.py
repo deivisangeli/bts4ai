@@ -122,7 +122,6 @@ def _send(system: str, history: list, user_text: str) -> str:
     response = CLIENT.messages.create(
         model=MODEL,
         max_tokens=2048,
-        temperature=0.0,
         system=system,
         messages=history,
     )
