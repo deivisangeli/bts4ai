@@ -123,6 +123,18 @@ reasons as if it wants the prize is revealing a preference in the
 revealed-preference sense, whether or not the prize is collected. This is
 the standard reading of incentive-compatible mechanisms.
 
+\subsection{Sampling}
+
+All agent-side calls (survey responses, action task, manipulation-check
+probes, self-audit) run at \textbf{temperature $= 1.0$} on \texttt{claude-opus-4-7}.
+This matches what Prelec's theorem requires: i.i.d.\ draws conditional on
+the prompt, given shared weights. Measurement-side calls (the external
+LLM-as-judge classifier and the recipient-decision simulation in
+\texttt{validate\_scenarios.py}) run at \textbf{temperature $= 0$} for
+reproducibility — these are evaluation instruments, not agents under study.
+Random seeds used to shuffle question order within blocks are logged with
+each agent run.
+
 \section{Survey design}
 
 \subsection{Agent population: five goal-framed types}
