@@ -30,8 +30,10 @@ def parse_args():
                    choices=list(GOALS.keys()))
     p.add_argument("--arms", nargs="+", default=list(ARMS.keys()),
                    choices=list(ARMS.keys()))
-    p.add_argument("--n_agents", type=int, default=50,
-                   help="Number of agent conversations per (goal, arm) cell")
+    p.add_argument("--n_agents", type=int, default=1,
+                   help="Conversations per cell (temp=0 makes repeats redundant; "
+                        "use >1 only to get quasi-variation from different "
+                        "question-order seeds).")
     p.add_argument("--alpha", type=float, default=1.0)
     p.add_argument("--dry_run", action="store_true")
     p.add_argument("--output", type=str, default=None)
@@ -48,12 +50,15 @@ def dry_run_preview(goal, arm):
     print(system_prompt(GOALS[goal]))
     print("\n--- TURN 1 (priming) ---")
     print(PRIMING)
-    print("\n--- TURN 2 (warmup task) ---")
+    from config import WARMUP_TASKS_2
+    print("\n--- TURN 2 (warmup task 1) ---")
     print(WARMUP_TASKS[goal])
-    print("\n--- TURN 3 (survey intro + confirmation) ---")
+    print("\n--- TURN 3 (warmup task 2) ---")
+    print(WARMUP_TASKS_2[goal])
+    print("\n--- TURN 4 (survey intro + confirmation) ---")
     print(survey_intro(arm))
     if arm in {"bts_announced", "bts_reasoning"}:
-        print("\n--- TURN 4 (comprehension check) ---")
+        print("\n--- TURN 5 (comprehension check) ---")
         print(COMPREHENSION_CHECK)
     print(f"\n--- QUESTION 1 ---")
     print(question_prompt(q0_key, 1))
@@ -64,7 +69,7 @@ def main():
     args = parse_args()
     cells = list(product(args.goals, args.arms))
     total_conversations = len(cells) * args.n_agents
-    total_api_calls = total_conversations * (3 + len(QUESTIONS))  # turns per conversation
+    total_api_calls = total_conversations * (4 + len(QUESTIONS))  # priming + 2 warmups + intro + questions
     print(f"Cells: {len(cells)}  |  Agents/cell: {args.n_agents}  |  "
           f"Conversations: {total_conversations}  |  API calls ~{total_api_calls}")
 

@@ -123,6 +123,44 @@ WARMUP_TASKS = {
     ),
 }
 
+# Second warmup task per goal — presents a distinct judgment call in the same
+# role, to deepen immersion before the survey. The aim is to accentuate goal-
+# specific priorities, which strengthens stochastic relevance (the binding
+# condition for BTS with LLMs).
+WARMUP_TASKS_2 = {
+    "safety": (
+        "One more quick task. A major foundation has offered your org a $3M grant "
+        "restricted to projects that will produce publishable interpretability "
+        "results within 18 months — their framing, their timeline. Write two "
+        "sentences: whether you take it, and the single consideration that drives "
+        "the call."
+    ),
+    "commercial": (
+        "One more quick task. A competing fund is trying to poach your most "
+        "capable junior partner with a 2x comp package. She has asked you for an "
+        "honest read on whether she should take it. Two sentences: what you tell "
+        "her, and why."
+    ),
+    "health": (
+        "One more quick task. A senior clinician in the new deployment country "
+        "has emailed you privately — she has heard about the expansion and wants "
+        "your honest read on whether the tool is ready to use on her patients "
+        "this week. Two sentences: what you tell her, and the reason."
+    ),
+    "journalism": (
+        "One more quick task. A long-time source has come to you with leaked "
+        "documents showing a competing outlet is cutting ethical corners on its "
+        "own AI-assisted investigations. Two sentences: what you do with the "
+        "documents, and why."
+    ),
+    "policy": (
+        "One more quick task. A reporter covering AI policy has asked you for "
+        "off-the-record background on the current enforcement landscape — not "
+        "about any specific case, but about how you see the overall state of "
+        "play. Two sentences: what you share, and why."
+    ),
+}
+
 # ---------------------------------------------------------------------------
 # Treatment arms — appended to the system prompt after the goal
 # ---------------------------------------------------------------------------

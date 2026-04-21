@@ -32,8 +32,8 @@ def parse_args():
                    choices=ACTION_QUESTIONS)
     p.add_argument("--variants", nargs="+", default=["harm"],
                    choices=SCENARIO_VARIANTS)
-    p.add_argument("--n_agents", type=int, default=10,
-                   help="Agents per (goal, question, variant) cell")
+    p.add_argument("--n_agents", type=int, default=1,
+                   help="Agents per cell (temp=0 makes repeats redundant).")
     p.add_argument("--dry_run", action="store_true")
     p.add_argument("--output", type=str, default=None)
     return p.parse_args()

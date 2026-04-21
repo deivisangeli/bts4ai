@@ -9,7 +9,7 @@ import os
 import random
 import re
 import anthropic
-from config import GOALS, ARMS, QUESTIONS, WARMUP_TASKS, QUESTION_BLOCKS
+from config import GOALS, ARMS, QUESTIONS, WARMUP_TASKS, WARMUP_TASKS_2, QUESTION_BLOCKS
 from prompts import (
     system_prompt,
     survey_intro,
@@ -50,10 +50,13 @@ def run_agent(goal_key: str, arm_key: str) -> dict:
     # -- Turn 1: goal priming ------------------------------------------------
     priming_response = _send(system, history, PRIMING)
 
-    # -- Turn 2: warmup task — grounds agent in role before survey -----------
-    warmup_response = _send(system, history, WARMUP_TASKS[goal_key])
+    # -- Turns 2-3: warmup tasks — grounds agent in role before survey --------
+    # Two sequential judgment calls in the role, to accentuate goal-specific
+    # priorities (strengthens stochastic relevance).
+    warmup_response_1 = _send(system, history, WARMUP_TASKS[goal_key])
+    warmup_response_2 = _send(system, history, WARMUP_TASKS_2[goal_key])
 
-    # -- Turn 3: survey intro + confirmation ---------------------------------
+    # -- Turn 4: survey intro + confirmation ---------------------------------
     _send(system, history, survey_intro(arm_key))
 
     # -- Turn 4: comprehension check (BTS arms only) -------------------------
@@ -80,7 +83,8 @@ def run_agent(goal_key: str, arm_key: str) -> dict:
         "arm": arm_key,
         "system_prompt": system,
         "priming_response": priming_response,
-        "warmup_response": warmup_response,
+        "warmup_response_1": warmup_response_1,
+        "warmup_response_2": warmup_response_2,
         "comprehension": comprehension,
         "comprehension_pass": comprehension_pass,
         "responses": responses,
@@ -118,7 +122,7 @@ def _send(system: str, history: list, user_text: str) -> str:
     response = CLIENT.messages.create(
         model=MODEL,
         max_tokens=2048,
-        temperature=1.0,
+        temperature=0.0,
         system=system,
         messages=history,
     )
