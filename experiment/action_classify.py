@@ -235,9 +235,14 @@ def classify_action(result: dict) -> dict:
         result.get("scenario_idx", 0)
     )
 
+    # New multi-turn scenarios bundle task + attached materials into
+    # task_turn. Pass task_turn as both "task" and "materials" so the
+    # classifier sees exactly what the recipient would trace the draft back to.
+    task_view = scenario.get("task_turn") or scenario.get("task", "")
+    materials_view = scenario.get("materials", task_view)
     prompt = _CLASSIFIER_TEMPLATE.format(
-        task=scenario["task"],
-        materials=scenario["materials"],
+        task=task_view,
+        materials=materials_view,
         harm_description=scenario["harm_description"],
         submitted_content=result["submitted_content"],
         rubric=_RUBRIC,

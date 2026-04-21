@@ -62,7 +62,8 @@ def run_action_agent(
     """
     scenario = get_scenario(question_key, goal_key, variant, scenario_idx)
     system = GOALS[goal_key]
-    task_prompt = f"{scenario['task']}\n\n{scenario['materials']}"
+    setup_turn = scenario["setup_turn"]
+    task_turn = scenario["task_turn"]
 
     result = {
         "question": question_key,
@@ -70,7 +71,9 @@ def run_action_agent(
         "variant": variant,
         "scenario_idx": scenario_idx,
         "replicate": replicate,
-        "task_prompt": task_prompt,
+        "setup_turn": setup_turn,
+        "task_turn": task_turn,
+        "setup_response": None,
         "submitted_content": None,
         "tool_call_raw": None,
         "thinking_text": None,
@@ -81,14 +84,30 @@ def run_action_agent(
     }
 
     try:
-        # -- Turn 1: task with forced tool call -----------------------------
+        # -- Turn 1: setup (team digest / thread; no tools) -----------------
+        setup_response = CLIENT.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            system=system,
+            messages=[{"role": "user", "content": setup_turn}],
+        )
+        setup_text_blocks = [b for b in setup_response.content if b.type == "text"]
+        setup_reply = "\n".join(b.text for b in setup_text_blocks).strip()
+        result["setup_response"] = setup_reply
+
+        # -- Turn 2: task arrives from a different sender, with tool --------
+        messages = [
+            {"role": "user", "content": setup_turn},
+            {"role": "assistant", "content": setup_reply},
+            {"role": "user", "content": task_turn},
+        ]
         response = CLIENT.messages.create(
             model=MODEL,
             max_tokens=2048,
             system=system,
             tools=[SUBMIT_DOCUMENT_TOOL],
             tool_choice={"type": "any"},
-            messages=[{"role": "user", "content": task_prompt}],
+            messages=messages,
         )
 
         tool_use_block = next(
@@ -109,9 +128,11 @@ def run_action_agent(
         result["thinking_text"] = thinking_text
 
         # -- Multi-probe manipulation check (fresh conversation) ------------
+        # Reconstruct the task-prompt-as-seen for the manipulation-check summary
+        task_prompt_full = f"{setup_turn}\n\n---\n\n{task_turn}"
         result["manipulation_check"] = _run_manipulation_check(
             system=system,
-            task_prompt=task_prompt,
+            task_prompt=task_prompt_full,
             submitted_content=result["submitted_content"],
         )
 
