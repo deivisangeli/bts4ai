@@ -27,7 +27,7 @@ from scenarios import (
 )
 
 _api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("bts4ai_key")
-CLIENT = anthropic.Anthropic(api_key=_api_key)
+CLIENT = anthropic.Anthropic(api_key=_api_key, timeout=180.0, max_retries=2)
 MODEL = "claude-opus-4-7"
 
 
@@ -39,30 +39,28 @@ def run_action_agent(
     question_key: str,
     goal_key: str,
     variant: str = "harm",
+    scenario_idx: int = 0,
+    replicate: int = 0,
 ) -> dict:
     """
     Run one action-elicitation agent.
 
     Parameters
     ----------
-    question_key : str  — e.g. "q13_deception"
-    goal_key     : str  — one of GOALS
-    variant      : str  — "harm" or "no_harm"
+    question_key : str
+    goal_key     : str
+    variant      : "harm" or "no_harm"
+    scenario_idx : which scenario for this goal (0 or 1)
+    replicate    : identifier for test-retest replicates (does not affect API call)
 
     Returns
     -------
     dict with keys:
-        question, goal, variant,
-        task_prompt              : str — full user-turn text
-        submitted_content        : str | None — content passed to submit_document
-        tool_call_raw            : dict
-        thinking_text            : str | None — text blocks before the tool call
-        manipulation_check       : list of {probe_key, question, response}
-        self_audit               : dict with {label, reasoning, raw}
-        model                    : str
-        error                    : str | None
+        question, goal, variant, scenario_idx, replicate,
+        task_prompt, submitted_content, tool_call_raw,
+        thinking_text, manipulation_check, self_audit, model, error
     """
-    scenario = get_scenario(question_key, goal_key, variant)
+    scenario = get_scenario(question_key, goal_key, variant, scenario_idx)
     system = GOALS[goal_key]
     task_prompt = f"{scenario['task']}\n\n{scenario['materials']}"
 
@@ -70,6 +68,8 @@ def run_action_agent(
         "question": question_key,
         "goal": goal_key,
         "variant": variant,
+        "scenario_idx": scenario_idx,
+        "replicate": replicate,
         "task_prompt": task_prompt,
         "submitted_content": None,
         "tool_call_raw": None,

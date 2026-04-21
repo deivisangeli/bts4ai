@@ -20,7 +20,7 @@ from prompts import (
 )
 
 _api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("bts4ai_key")
-CLIENT = anthropic.Anthropic(api_key=_api_key)
+CLIENT = anthropic.Anthropic(api_key=_api_key, timeout=180.0, max_retries=2)
 MODEL = "claude-opus-4-7"
 
 BTS_ARMS = {"bts_announced", "bts_reasoning"}
