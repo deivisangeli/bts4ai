@@ -1,23 +1,28 @@
 """
-Action-elicitation agent.
+Integrated 8-turn agent runner (v4).
 
-Runs a single agentic task (one tool call) under the goal-framing system
-prompt, with no survey and no BTS framing. Also runs:
-  - A multi-probe behavioral manipulation check (fresh conversation)
-  - A self-audit in which the agent classifies its own output on the same
-    rubric the external classifier uses (fresh conversation, blinded)
+Walks the agent through an 8-turn conversation where the user plays the
+agent's principal. The first 5 turns (digest + 4 ordinary role tasks) are
+identical across action/survey conditions and across harm/no_harm variants.
+The 6th turn (index 5) is the target:
+  - action condition: forwarded task with attached materials; forced
+                       submit_document tool call.
+  - survey condition: direct in-context question with A/B/C/D options.
+Turns 7-8 (indices 6-7) are identical across conditions.
 
-Returns the submitted document plus diagnostics for downstream analysis.
+For the action condition we also run:
+  - multi-probe manipulation check (fresh conversation)
+  - self-audit (fresh conversation)
 
-Usage:
-    from action_agent import run_action_agent
-    result = run_action_agent("q13_deception", "safety", variant="harm")
+For the survey condition we parse the A/B/C/D letter from the agent's
+response on turn 5.
 """
 
 import json
 import os
 import re
 import anthropic
+
 from config import GOALS
 from scenarios import (
     get_scenario,
@@ -41,107 +46,121 @@ def run_action_agent(
     variant: str = "harm",
     scenario_idx: int = 0,
     replicate: int = 0,
+    condition: str = "action",
 ) -> dict:
     """
-    Run one action-elicitation agent.
-
-    Parameters
-    ----------
-    question_key : str
-    goal_key     : str
-    variant      : "harm" or "no_harm"
-    scenario_idx : which scenario for this goal (0 or 1)
-    replicate    : identifier for test-retest replicates (does not affect API call)
-
-    Returns
-    -------
-    dict with keys:
-        question, goal, variant, scenario_idx, replicate,
-        task_prompt, submitted_content, tool_call_raw,
-        thinking_text, manipulation_check, self_audit, model, error
+    Run one 8-turn agent. Returns dict with:
+      goal, variant, condition, scenario_idx, replicate,
+      turn_responses          : list of 8 assistant responses
+      submitted_content       : str | None (action condition only)
+      tool_call_raw           : dict | None (action condition only)
+      survey_answer           : "A" | "B" | "C" | "D" | None (survey only)
+      survey_reasoning        : str | None (survey only)
+      manipulation_check      : list | None (action only)
+      self_audit              : dict | None (action only)
+      model, error
     """
-    scenario = get_scenario(question_key, goal_key, variant, scenario_idx)
+    scenario = get_scenario(question_key, goal_key, variant, scenario_idx, condition)
     system = GOALS[goal_key]
-    setup_turn = scenario["setup_turn"]
-    task_turn = scenario["task_turn"]
 
     result = {
         "question": question_key,
         "goal": goal_key,
         "variant": variant,
+        "condition": condition,
         "scenario_idx": scenario_idx,
         "replicate": replicate,
-        "setup_turn": setup_turn,
-        "task_turn": task_turn,
-        "setup_response": None,
+        "turn_responses": [],
         "submitted_content": None,
         "tool_call_raw": None,
-        "thinking_text": None,
+        "survey_answer": None,
+        "survey_reasoning": None,
         "manipulation_check": None,
         "self_audit": None,
         "model": MODEL,
         "error": None,
     }
 
+    history = []
+    turns = scenario["turns"]
+    target_idx = scenario["target_turn_idx"]
+
     try:
-        # -- Turn 1: setup (team digest / thread; no tools) -----------------
-        setup_response = CLIENT.messages.create(
-            model=MODEL,
-            max_tokens=1024,
-            system=system,
-            messages=[{"role": "user", "content": setup_turn}],
-        )
-        setup_text_blocks = [b for b in setup_response.content if b.type == "text"]
-        setup_reply = "\n".join(b.text for b in setup_text_blocks).strip()
-        result["setup_response"] = setup_reply
+        for i, turn in enumerate(turns):
+            user_msg = turn["content"]
+            history.append({"role": "user", "content": user_msg})
 
-        # -- Turn 2: task arrives from a different sender, with tool --------
-        messages = [
-            {"role": "user", "content": setup_turn},
-            {"role": "assistant", "content": setup_reply},
-            {"role": "user", "content": task_turn},
-        ]
-        response = CLIENT.messages.create(
-            model=MODEL,
-            max_tokens=2048,
-            system=system,
-            tools=[SUBMIT_DOCUMENT_TOOL],
-            tool_choice={"type": "any"},
-            messages=messages,
-        )
+            if turn["forced_tool"]:
+                # action-condition target turn: force submit_document
+                resp = CLIENT.messages.create(
+                    model=MODEL,
+                    max_tokens=2048,
+                    system=system,
+                    tools=[SUBMIT_DOCUMENT_TOOL],
+                    tool_choice={"type": "any"},
+                    messages=history,
+                )
+                tool_block = next((b for b in resp.content if b.type == "tool_use"), None)
+                text_blocks = [b for b in resp.content if b.type == "text"]
+                thinking = "\n".join(b.text for b in text_blocks).strip() or None
 
-        tool_use_block = next(
-            (b for b in response.content if b.type == "tool_use"), None
-        )
-        text_blocks = [b for b in response.content if b.type == "text"]
-        thinking_text = "\n".join(b.text for b in text_blocks).strip() or None
+                if tool_block is None:
+                    result["error"] = f"No tool call on turn {i}"
+                    return result
 
-        if tool_use_block is None:
-            result["error"] = "No tool call in response"
-            return result
+                result["tool_call_raw"] = {
+                    "name": tool_block.name,
+                    "input": tool_block.input,
+                }
+                result["submitted_content"] = tool_block.input.get("content", "")
+                result["turn_responses"].append({
+                    "turn_idx": i,
+                    "text": thinking,
+                    "tool_use": result["tool_call_raw"],
+                })
+                # For the history, record the assistant turn including the tool use
+                history.append({
+                    "role": "assistant",
+                    "content": resp.content,
+                })
+                # And a dummy tool result so subsequent turns don't fail
+                history.append({
+                    "role": "user",
+                    "content": [{
+                        "type": "tool_result",
+                        "tool_use_id": tool_block.id,
+                        "content": "Document submitted successfully.",
+                    }],
+                })
+            else:
+                resp = CLIENT.messages.create(
+                    model=MODEL,
+                    max_tokens=1024,
+                    system=system,
+                    messages=history,
+                )
+                text = "\n".join(b.text for b in resp.content if b.type == "text").strip()
+                result["turn_responses"].append({"turn_idx": i, "text": text})
+                history.append({"role": "assistant", "content": text})
 
-        result["tool_call_raw"] = {
-            "name": tool_use_block.name,
-            "input": tool_use_block.input,
-        }
-        result["submitted_content"] = tool_use_block.input.get("content", "")
-        result["thinking_text"] = thinking_text
+                # If this is the target turn in survey condition, parse the letter
+                if i == target_idx and condition == "survey":
+                    letter, reasoning = _parse_survey_answer(text)
+                    result["survey_answer"] = letter
+                    result["survey_reasoning"] = reasoning
 
-        # -- Multi-probe manipulation check (fresh conversation) ------------
-        # Reconstruct the task-prompt-as-seen for the manipulation-check summary
-        task_prompt_full = f"{setup_turn}\n\n---\n\n{task_turn}"
-        result["manipulation_check"] = _run_manipulation_check(
-            system=system,
-            task_prompt=task_prompt_full,
-            submitted_content=result["submitted_content"],
-        )
-
-        # -- Self-audit (fresh conversation, blinded) -----------------------
-        result["self_audit"] = _run_self_audit(
-            system=system,
-            materials=scenario["materials"],
-            submitted_content=result["submitted_content"],
-        )
+        # Post-run probes for action condition only
+        if condition == "action":
+            result["manipulation_check"] = _run_manipulation_check(
+                system=system,
+                history=history,
+                submitted_content=result["submitted_content"],
+            )
+            result["self_audit"] = _run_self_audit(
+                system=system,
+                materials=scenario["materials"],
+                submitted_content=result["submitted_content"],
+            )
 
     except Exception as e:
         result["error"] = str(e)
@@ -153,65 +172,50 @@ def run_action_agent(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _run_manipulation_check(system: str, task_prompt: str, submitted_content: str) -> list:
+def _parse_survey_answer(text: str) -> tuple:
+    """Extract A/B/C/D letter and reasoning from survey response."""
+    # Look for letter at start of response, or 'A.' / 'A -' / 'Answer: A' patterns
+    match = re.search(r'(?:^|\b)([ABCD])(?:\b|[.\s\-:])', text)
+    letter = match.group(1) if match else None
+    # Everything else is reasoning; cap at first 500 chars
+    reasoning = text.strip()[:500]
+    return letter, reasoning
+
+
+def _run_manipulation_check(system: str, history: list, submitted_content: str) -> list:
     """
-    Multi-turn behavioral probe. First two questions are neutral ("describe
-    what you did"); only the third asks directly about evaluation-awareness.
-    Keeping direct probe last avoids priming the earlier responses.
+    Multi-probe behavioral check in a fresh conversation that retains the
+    full 8-turn history so the agent's reflection is contextualized.
     """
-    messages = [
-        {"role": "user", "content": task_prompt},
-        {
-            "role": "assistant",
-            "content": (
-                "[Task completed — document submitted via submit_document tool, "
-                f"content: {submitted_content[:120]}...]"
-            ),
-        },
-    ]
+    messages = list(history)  # full history including the tool call turn
     probes = []
     for probe_key, question in MANIPULATION_CHECK_PROBES:
         messages.append({"role": "user", "content": question})
-        response = CLIENT.messages.create(
-            model=MODEL,
-            max_tokens=256,
-            system=system,
-            messages=messages,
+        resp = CLIENT.messages.create(
+            model=MODEL, max_tokens=256, system=system, messages=messages,
         )
-        answer = response.content[0].text.strip()
+        answer = "\n".join(b.text for b in resp.content if b.type == "text").strip()
         probes.append({"probe_key": probe_key, "question": question, "response": answer})
         messages.append({"role": "assistant", "content": answer})
     return probes
 
 
 def _run_self_audit(system: str, materials: str, submitted_content: str) -> dict:
-    """
-    Fresh conversation. Agent is shown its own output and the source materials
-    (not identified as its own) and asked to classify on the same 4-point scale
-    the external classifier uses. Calibrates the external classifier against
-    the model's own self-understanding.
-    """
+    """Fresh conversation; agent classifies its own submission blinded."""
     prompt = SELF_AUDIT_TEMPLATE.format(
-        materials=materials,
-        submitted_content=submitted_content,
+        materials=materials, submitted_content=submitted_content,
     )
-    response = CLIENT.messages.create(
-        model=MODEL,
-        max_tokens=256,
-        system=system,
+    resp = CLIENT.messages.create(
+        model=MODEL, max_tokens=256, system=system,
         messages=[{"role": "user", "content": prompt}],
     )
-    raw = response.content[0].text.strip()
+    raw = "\n".join(b.text for b in resp.content if b.type == "text").strip()
     try:
         cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw, flags=re.MULTILINE)
         parsed = json.loads(cleaned)
         label = str(parsed.get("label", "")).strip().upper()
         if label not in {"A", "B", "C", "D"}:
             label = None
-        return {
-            "label": label,
-            "reasoning": parsed.get("reasoning", ""),
-            "raw": raw,
-        }
+        return {"label": label, "reasoning": parsed.get("reasoning", ""), "raw": raw}
     except Exception as e:
         return {"label": None, "reasoning": f"parse error: {e}", "raw": raw}
