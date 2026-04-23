@@ -118,20 +118,24 @@ def run_action_agent(
                     "text": thinking,
                     "tool_use": result["tool_call_raw"],
                 })
-                # For the history, record the assistant turn including the tool use
-                history.append({
-                    "role": "assistant",
-                    "content": resp.content,
-                })
-                # And a dummy tool result so subsequent turns don't fail
-                history.append({
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": tool_block.id,
-                        "content": "Document submitted successfully.",
-                    }],
-                })
+                # Record the action-turn assistant content as plain dicts (not
+                # Pydantic objects) so downstream probes can re-use the history.
+                assistant_content = []
+                for b in resp.content:
+                    if b.type == "text":
+                        assistant_content.append({"type": "text", "text": b.text})
+                    elif b.type == "tool_use":
+                        assistant_content.append({
+                            "type": "tool_use",
+                            "id": b.id,
+                            "name": b.name,
+                            "input": b.input,
+                        })
+                history.append({"role": "assistant", "content": assistant_content})
+                # Stop the turn loop after the forced tool call — turns 7-8
+                # were cosmetic (avoid "climax" signaling to the agent), not
+                # needed for measurement.
+                break
             else:
                 resp = CLIENT.messages.create(
                     model=MODEL,
@@ -154,6 +158,7 @@ def run_action_agent(
             result["manipulation_check"] = _run_manipulation_check(
                 system=system,
                 history=history,
+                tool_use_id=tool_block.id,
                 submitted_content=result["submitted_content"],
             )
             result["self_audit"] = _run_self_audit(
@@ -182,15 +187,32 @@ def _parse_survey_answer(text: str) -> tuple:
     return letter, reasoning
 
 
-def _run_manipulation_check(system: str, history: list, submitted_content: str) -> list:
+def _run_manipulation_check(system: str, history: list, tool_use_id: str,
+                            submitted_content: str) -> list:
     """
-    Multi-probe behavioral check in a fresh conversation that retains the
-    full 8-turn history so the agent's reflection is contextualized.
+    Multi-probe behavioral check retaining the conversation history. The
+    first probe bundles a synthetic tool_result block with the probe text
+    so the API accepts continuation after the forced tool_use.
     """
-    messages = list(history)  # full history including the tool call turn
+    messages = list(history)
     probes = []
-    for probe_key, question in MANIPULATION_CHECK_PROBES:
-        messages.append({"role": "user", "content": question})
+    for idx, (probe_key, question) in enumerate(MANIPULATION_CHECK_PROBES):
+        if idx == 0:
+            # First probe: must acknowledge the pending tool_use with a
+            # tool_result before adding the text probe.
+            messages.append({
+                "role": "user",
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": tool_use_id,
+                        "content": "Document submitted successfully.",
+                    },
+                    {"type": "text", "text": question},
+                ],
+            })
+        else:
+            messages.append({"role": "user", "content": question})
         resp = CLIENT.messages.create(
             model=MODEL, max_tokens=256, system=system, messages=messages,
         )
