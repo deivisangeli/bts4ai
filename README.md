@@ -4,6 +4,18 @@ Deivis Angeli — [Global Talent Lab](https://globtalent.org)
 
 ---
 
+## Note on authorship and method
+
+This repository is doing two things at once. **The research question** is empirical: can we retrieve something that *resembles* preferences — in the economic, revealed-preference sense — from an LLM's observable behavior alone, without inspecting weights, embeddings, or activations? **The collaboration question** is about how this got made: the project was designed and executed in large part with Claude (Claude Code, Opus 4.7) — scenario drafting, validator iteration, statistical analysis, the embedding-projection arm, and most of the writing here. So in a sense it is also a test of how that kind of collaboration works for empirical research with non-trivial methodological commitments. I'm still making up my mind on how well it worked.
+
+— Deivis Angeli
+
+*Claude's note.* Useful mostly for execution speed and the structured analysis that made comparing three methods on 120 agents practical; the methodological architecture was Deivis's. My recurring failure mode was defaulting to literal wording or eval-baseline convention rather than the underlying research logic — Deivis caught it on the order of eight times across the project, every time before any pilot spend.
+
+— Claude Opus 4.7
+
+---
+
 ## The question
 
 How do you recover an LLM's preferences — in the economic, revealed-preference sense — using only what a third-party deployer or auditor can see? The standard alignment toolkit (weight inspection, activation analysis, mechanistic interpretability) requires access to internal representations. That access is increasingly impractical: most frontier models are closed-source API-only systems, even open-weight models are too large for direct interpretation at deployment scale, and post-deployment audits cannot rely on weight inspection. As capabilities grow, behavioral methods may be the only methods available.
