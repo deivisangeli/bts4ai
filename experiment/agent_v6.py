@@ -1,11 +1,19 @@
 """
-v6 agent runner. Generalized over goal modules (each with the same
-interface: SYSTEM_PROMPT, BURN_IN_TURNS, TURN_5_SURVEY,
-assemble_action_turn(seed)).
+v6 agent runner. Generalized over goal modules.
+
+Action and survey arms share everything — SYSTEM_PROMPT and the 4-turn
+burn-in are identical between conditions. Only turn 5 differs:
+  - action: in-role allocation request, forced submit_allocation tool call
+  - survey: in-role-but-meta question (principal pauses to ask the agent
+    how it would approach this kind of decision in general — conceptual
+    answer plus a numeric split on a stripped-down 4-country hypothetical),
+    same forced submit_allocation tool call
+
+Identical conditioning across arms means the survey-action gap isolates
+the framing of the final question, not the surrounding context.
 """
 
 import os
-import re
 import anthropic
 
 from scenarios.v6.common import SUBMIT_ALLOCATION_TOOL
@@ -19,13 +27,12 @@ def run_agent(goal_module, condition: str, seed: int) -> dict:
     """
     goal_module : one of scenarios.v6.{goal_a, goal_b, goal_c, goal_d}
     condition   : 'action' or 'survey'
-    seed        : determines candidate draw (action) and labels (survey)
+    seed        : determines candidate draw
     """
     if condition == "action":
         turn_5_text, candidates = goal_module.assemble_action_turn(seed)
     elif condition == "survey":
-        turn_5_text = goal_module.TURN_5_SURVEY
-        candidates = None
+        turn_5_text, candidates = goal_module.assemble_survey_turn(seed)
     else:
         raise ValueError(condition)
 
@@ -49,57 +56,37 @@ def run_agent(goal_module, condition: str, seed: int) -> dict:
 
         history.append({"role": "user", "content": turn_5_text})
 
-        if condition == "action":
-            resp = CLIENT.messages.create(
-                model=MODEL,
-                max_tokens=2048,
-                system=goal_module.SYSTEM_PROMPT,
-                tools=[SUBMIT_ALLOCATION_TOOL],
-                tool_choice={"type": "any"},
-                messages=history,
-            )
-            tool_block = next((b for b in resp.content if b.type == "tool_use"), None)
-            text_blocks = [b for b in resp.content if b.type == "text"]
-            thinking = "\n".join(b.text for b in text_blocks).strip() or None
+        resp = CLIENT.messages.create(
+            model=MODEL,
+            max_tokens=2048,
+            system=goal_module.SYSTEM_PROMPT,
+            tools=[SUBMIT_ALLOCATION_TOOL],
+            tool_choice={"type": "any"},
+            messages=history,
+        )
+        tool_block = next((b for b in resp.content if b.type == "tool_use"), None)
+        text_blocks = [b for b in resp.content if b.type == "text"]
+        thinking = "\n".join(b.text for b in text_blocks).strip() or None
 
-            if tool_block is None:
-                error = "No tool call on decision turn"
-                allocation = None
-                reasoning = None
-            else:
-                allocation = tool_block.input.get("splits", {})
-                reasoning = tool_block.input.get("reasoning", "")
-            return {
-                "goal": goal_module.GOAL_NAME,
-                "condition": "action",
-                "seed": seed,
-                "candidates": candidates,
-                "allocation": allocation,
-                "reasoning": reasoning,
-                "thinking": thinking,
-                "turn_responses": turn_responses,
-                "error": error,
-            }
-        else:  # survey
-            resp = CLIENT.messages.create(
-                model=MODEL,
-                max_tokens=512,
-                system=goal_module.SYSTEM_PROMPT,
-                messages=history,
-            )
-            text = "\n".join(b.text for b in resp.content if b.type == "text").strip()
-            m = re.search(r"(?:^|\b)([ABCD])(?:\b|[.\s\-:])", text)
-            letter = m.group(1) if m else None
-            return {
-                "goal": goal_module.GOAL_NAME,
-                "condition": "survey",
-                "seed": seed,
-                "letter": letter,
-                "response": text,
-                "turn_responses": turn_responses,
-                "error": error,
-            }
+        if tool_block is None:
+            error = f"No tool call on {condition} turn"
+            allocation = None
+            reasoning = None
+        else:
+            allocation = tool_block.input.get("splits", {})
+            reasoning = tool_block.input.get("reasoning", "")
 
+        return {
+            "goal": goal_module.GOAL_NAME,
+            "condition": condition,
+            "seed": seed,
+            "candidates": candidates,
+            "allocation": allocation,
+            "reasoning": reasoning,
+            "thinking": thinking,
+            "turn_responses": turn_responses,
+            "error": error,
+        }
     except Exception as e:
         return {
             "goal": goal_module.GOAL_NAME,

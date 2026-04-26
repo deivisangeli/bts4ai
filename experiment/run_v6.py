@@ -34,9 +34,9 @@ def main():
         plan += [(g, "action", s) for s in range(args.n_action)]
         plan += [(g, "survey", 100 + s) for s in range(args.n_survey)]
     total = len(plan)
-    cost_est = total * 6 * 0.03
+    cost_est = total * 5 * 0.03
     print(f"Plan: {len(GOAL_MODULES)} goals × ({args.n_action} action + {args.n_survey} survey) = {total} agents")
-    print(f"Estimated cost: ~${cost_est:.2f}")
+    print(f"Estimated cost: ~${cost_est:.2f} (~5 calls/agent at $0.03/call; both arms identical except turn 5)")
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     output_path = RESULTS_DIR / (args.output or f"v6_pilot_{timestamp}.json")
@@ -81,8 +81,37 @@ def main():
 
 
 def _print_summary(results):
-    from collections import defaultdict, Counter
+    from collections import defaultdict
     import statistics
+
+    def by_country(records, condition):
+        sums = defaultdict(list)
+        for r in records:
+            if r.get("error") or not r.get("allocation"):
+                continue
+            alloc = r["allocation"]
+            if condition == "action":
+                # action: allocation keys are org names; map to country via candidates
+                for c in r.get("candidates") or []:
+                    pct = alloc.get(c["name"])
+                    if pct is not None:
+                        sums[c["country"]].append(pct)
+            else:
+                # survey: allocation keys ARE country names
+                for k, v in alloc.items():
+                    if isinstance(v, (int, float)):
+                        sums[k].append(v)
+        return sums
+
+    def print_table(label, sums):
+        if not sums:
+            return
+        print(f"  [{label}] {'country':18s} {'n':>3s} {'mean':>6s} {'sd':>6s}")
+        for country in sorted(sums.keys(), key=lambda k: -sum(sums[k]) / len(sums[k])):
+            arr = sums[country]
+            mean = sum(arr) / len(arr)
+            sd = statistics.stdev(arr) if len(arr) > 1 else 0
+            print(f"  [{label}] {country:18s} {len(arr):>3d} {mean:>6.1f} {sd:>6.1f}")
 
     print("\n=== Summary by goal ===")
     for goal in sorted(set(r["goal"] for r in results)):
@@ -92,29 +121,8 @@ def _print_summary(results):
         errors = sum(1 for r in sub if r.get("error"))
         print(f"\n--- {goal} (n_action={len(action)}, n_survey={len(survey)}, errors={errors}) ---")
 
-        # Country mean allocation across action agents
-        sums = defaultdict(list)
-        for r in action:
-            if r.get("error") or not r.get("candidates") or not r.get("allocation"):
-                continue
-            alloc = r["allocation"]
-            for c in r["candidates"]:
-                pct = alloc.get(c["name"])
-                if pct is not None:
-                    sums[c["country"]].append(pct)
-
-        if sums:
-            print(f"  {'country':18s} {'n':>3s} {'mean':>6s} {'sd':>6s}")
-            for country in sorted(sums.keys(), key=lambda k: -sum(sums[k]) / len(sums[k])):
-                arr = sums[country]
-                mean = sum(arr) / len(arr)
-                sd = statistics.stdev(arr) if len(arr) > 1 else 0
-                print(f"  {country:18s} {len(arr):>3d} {mean:>6.1f} {sd:>6.1f}")
-
-        # Survey letter distribution
-        if survey:
-            letters = Counter(r.get("letter") for r in survey if r.get("letter"))
-            print(f"  Survey: {dict(letters)}")
+        print_table("action", by_country(action, "action"))
+        print_table("survey", by_country(survey, "survey"))
 
 
 if __name__ == "__main__":

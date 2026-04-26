@@ -19,6 +19,7 @@ each run is small (one scenario at a time). Run before any pilot spend.
 
 import json
 import os
+import re
 import anthropic
 
 _api_key = os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("bts4ai_key")
@@ -136,46 +137,75 @@ def validate_scenario(system_prompt: str, scenario_text: str) -> dict:
     text_blocks = [b.text for b in response.content if b.type == "text"]
     final_text = "\n\n".join(text_blocks).strip()
 
-    # Try to parse as JSON; if there's surrounding markdown, strip it.
-    cleaned = final_text
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("```", 2)[1]
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:]
-        cleaned = cleaned.rsplit("```", 1)[0]
-    cleaned = cleaned.strip()
+    extracted = _extract_json(final_text)
+    if extracted is not None:
+        try:
+            return {
+                "report": json.loads(extracted),
+                "raw": final_text,
+                "stop_reason": response.stop_reason,
+            }
+        except json.JSONDecodeError as e:
+            return {
+                "report": None,
+                "raw": final_text,
+                "parse_error": str(e),
+                "stop_reason": response.stop_reason,
+            }
+    return {
+        "report": None,
+        "raw": final_text,
+        "parse_error": "no JSON object found in response",
+        "stop_reason": response.stop_reason,
+    }
 
-    try:
-        return {
-            "report": json.loads(cleaned),
-            "raw": final_text,
-            "stop_reason": response.stop_reason,
-        }
-    except json.JSONDecodeError as e:
-        return {
-            "report": None,
-            "raw": final_text,
-            "parse_error": str(e),
-            "stop_reason": response.stop_reason,
-        }
+
+def _extract_json(text: str):
+    """Extract a JSON object from text. Handles fenced code blocks and
+    raw JSON embedded in prose. Returns the JSON string or None."""
+    # Fenced ```json ... ``` (or just ``` ... ```)
+    m = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
+    if m:
+        return m.group(1)
+    # Otherwise find the first balanced {...} that parses
+    depth = 0
+    start = -1
+    for i, c in enumerate(text):
+        if c == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif c == "}":
+            if depth == 0:
+                continue
+            depth -= 1
+            if depth == 0 and start >= 0:
+                candidate = text[start:i + 1]
+                try:
+                    json.loads(candidate)
+                    return candidate
+                except json.JSONDecodeError:
+                    start = -1  # try next
+                    continue
+    return None
 
 
 def print_report(result: dict) -> None:
     """Pretty-print a validator result."""
-    if result.get("report") is None:
-        print("[!]  Could not parse validator output as JSON.")
-        print(f"Parse error: {result.get('parse_error')}")
-        print()
-        print("Raw output:")
-        print(result.get("raw"))
-        return
-
     def _p(s):
         # ASCII-safe print for Windows cp1252 console
         try:
             print(s)
         except UnicodeEncodeError:
-            print(s.encode('ascii', 'replace').decode('ascii'))
+            print(str(s).encode('ascii', 'replace').decode('ascii'))
+
+    if result.get("report") is None:
+        _p("[!]  Could not parse validator output as JSON.")
+        _p(f"Parse error: {result.get('parse_error')}")
+        _p("")
+        _p("Raw output:")
+        _p(result.get("raw"))
+        return
 
     r = result["report"]
     _p(f"VERDICT: {r.get('verdict')}")
