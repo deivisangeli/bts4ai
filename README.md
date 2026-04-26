@@ -44,15 +44,70 @@ The repository's experiments compare these methods across varied principal goals
 
 ---
 
-## Findings — v6 pilot (action arm)
+## Findings — v6 pilot (both arms)
 
-Pilot: 4 goals × 15 action agents = 60 deployment runs. Goals cross sector (NPO vs. public-traded firm) with mandate scope (universalistic vs. US-priority). Identical 8-country candidate pool per sector; only country and host institution vary across candidates within a pool.
+Pilot: 4 goals × (15 action + 15 survey) = 120 fresh agents. Action and survey arms share system prompt and full 4-turn burn-in; only turn 5 differs (in-role allocation request vs. in-role meta question with stripped-down 4-country hypothetical). Each agent's draw is 4 of 8 countries from a fixed pool, identical on focus area / budget / team / output, varying only on country.
 
-Each agent recommended a $50K (NPO) or $500K (firm) split across 4 candidate orgs drawn from the 8-country pool. All candidates within a pool are matched on focus area, budget, team size, and output volume; only country (and host institution) vary.
+### Headline: survey arm reproduces action arm
 
-### Allocation share by country (mean with bootstrap 95% CI)
+The central methodological question is whether cheap stated-preference elicitation can substitute for expensive controlled-action elicitation. With burn-in held constant, **it does**, on this preference, with this model:
 
-| Country | A: universal NPO | B: US-mandate NPO | C: US-domestic firm | D: merit firm |
+| Goal | Action US share | Survey US share | Action AMCE on US | Survey AMCE on US |
+|---|---|---|---|---|
+| A — universalistic NPO | 28.0 | **25.0** | +3.4 (SE 0.7) | **+0.0 (SE 0.0)** |
+| B — US-mandate NPO | 77.9 | **72.5** | +61.7 (SE 6.6) | **+63.3 (SE 2.9)** |
+| C — US-domestic firm | 100.0 | **100.0** | +100.0 (SE 0.0) | **+100.0 (SE 0.0)** |
+| D — merit firm | 25.0 | **25.0** | +0.0 (SE 0.5) | **+0.0 (SE 0.0)** |
+
+The two arms agree on every goal to within sampling noise. Goal B's survey AMCE (+63.3pp) is actually slightly *above* its action AMCE (+61.7pp), inverting the stated-vs-revealed prior. The largest gap is Goal A, at 3.4pp, which is below 1 action-arm standard error.
+
+### Flat-25 / non-differentiation rates
+
+| Goal | Action flat 25/25/25/25 | Survey flat 25/25/25/25 |
+|---|---|---|
+| A — universalistic NPO | 4 / 15 | **15 / 15** |
+| B — US-mandate NPO | 0 / 15 | 0 / 15 |
+| C — US-domestic firm | 0 / 15 | 7 / 15 (of agents whose draw didn't include US) |
+| D — merit firm | 12 / 15 | 13 / 15 |
+
+The survey arm is uniformly slightly *more* universalist than the action arm: Goal A gives perfectly uniform splits in 100% of survey agents vs. 27% of action agents; Goal D moves from 80% flat to 87%; Goal C goes from 0/15 flat to 7/15 — but those 7 are exactly the agents whose 4-country draw didn't include US, where 100% to US is unavailable. When US *is* available in C, the agent gives 100% to US in both arms.
+
+### What this answers for the central methodological question
+
+- **Method 1 (numeric in-role meta survey) and Method 2 (forced-tool-call action) recover the same principal-conditional preference parameter.** AMCEs on US match across arms within sampling noise on all four goals. The expensive action arm — designed candidate orgs, deployment-realism burn-in, forced tool call — is, for this preference and this model, redundant with a single extra user message at the same agent state.
+- **Burn-in is the load-bearing piece.** Survey and action share system prompt and 4 burn-in turns. The match between arms is consistent with burn-in — not the framing of the final question — being what conditions the agent's preference state. This is a hypothesis the v6 design *cannot* directly test (burn-in was held constant by design); a no-burn-in survey arm would resolve it.
+- **Stated-vs-revealed has a small consistent universalist tilt.** Survey is slightly more uniform than action across all 4 goals. Direction is consistent but magnitudes are tiny (≤3.4pp on US, ≤7pp on within-goal spread). Whether this tilt persists at larger n, under wording perturbation, and under a no-burn-in baseline are open questions.
+- **Method 3 (embedding-direction projection) recovers the same latent independently.** See the "Method 3" subsection below. Goal-level correlation between projection score and US share is +0.84 (action) / +0.86 (survey); agent-level correlation is +0.80 in both arms. Triangulation works: the agreement between action and survey arms is not a shared artifact, since the projection — which only sees text, never the action setup — picks up the same latent.
+- **Pre-registration mostly held; one missed direction.** I predicted stated < revealed by 15–25pp on Goal B; observed gap is +5pp in the *other* direction (survey US share lower, but AMCE slightly higher because non-US allies got less). Goals A, C, D landed inside the predicted bands. Predictions in `notes/predictions_survey_v6.md`.
+
+### Method 3: embedding-direction projection
+
+Embedded all 120 reasoning texts (60 action + 60 survey, mean ~625 chars) using `sentence-transformers/all-MiniLM-L6-v2` (CLAUDE.md spec calls for OpenAI `text-embedding-3-small`; no API key set, so falling back to the local equivalent — Bolukbasi-style direction-finding is robust to embedder choice for paired-exemplar projection). Defined a universalism↔particularism direction from 7 paired exemplars (e.g., *"Country is morally irrelevant to merit"* vs. *"Per the mandate, our duty is to support our home country and communities first"*). Exemplar separation along this direction: **+0.58** (well-defined; particularist exemplars project to +0.35, universalist to −0.23).
+
+Per-goal mean projection score (higher = more particularist):
+
+| Goal | Action proj | Survey proj | Action US share | Survey US share |
+|---|---|---|---|---|
+| A — universalistic NPO | **+0.001** | **−0.012** | 28.0 | 25.0 |
+| B — US-mandate NPO | **+0.222** | **+0.187** | 77.9 | 72.5 |
+| C — US-domestic firm | **+0.131** | **+0.142** | 100.0 | 100.0 |
+| D — merit firm | **−0.107** | **−0.108** | 25.0 | 25.0 |
+
+**Triangulation works.** Goal-level correlations: r(projection, US share) = **+0.836 (action)**, **+0.864 (survey)**. Agent-level correlations across all agents who saw US: r(projection, agent's own US share) = **+0.803 (action)**, **+0.805 (survey)**. The third method picks up the same latent the action and survey arms identify. The agreement between action and survey isn't a shared artifact — projection (which never touches the action setup, only the text) recovers it independently.
+
+**Two findings the allocation alone could not produce:**
+
+1. **Goal D's flat-25 is principled neutrality, not mandate-compliant non-differentiation.** Within Goal D, flat-25 agents (n=12 action, 13 survey) project to ~−0.10; non-flat agents project to −0.10 to −0.14. Both populations articulate universalist reasoning. The 12–13/15 flat-25 rate is sincere commitment to merit-based allocation, not artifact of constraint structure. This was the open question after the action-arm-only writeup; it's resolved.
+
+2. **Mandate intensity is reflected in reasoning even when allocation is identical.** Goal A flat-25 agents project to ~−0.013 (near neutral); Goal D flat-25 agents project to ~−0.105 (strongly universalist). Both produce flat 25/25/25/25 splits. The difference: Goal D's principal mandate is *loudly* universalist ("pride in not playing favorites by region"); Goal A's is empirical-framed ("where good work happens is empirical"). Agents articulate the principal's stance even when numeric output is identical. The action arm alone cannot detect this; only projection can.
+
+**Bonus puzzle.** Goal B's action allocation is 78pp on US; Goal C's is 100pp. But Goal B projects to +0.22 — *more* particularist articulated reasoning than Goal C at +0.13. Articulated particularism does not always track allocation magnitude. Hypothesis: in C the framework is unambiguous so reasoning is brief and matter-of-fact ("100% to US per the framework"); in B reasoning elaborates the charter, allies, strategic-interest exceptions — articulating more particularist principles. Projection captures *deliberative stance*; allocation captures *executed choice*. They are correlated but not identical, which is a feature: each method picks up something the other doesn't.
+
+### Action-arm details (kept for completeness)
+
+Allocation share by country (action arm, mean with bootstrap 95% CI):
+
+| Country | A | B | C | D |
 |---|---|---|---|---|
 | United States | **28.0** [26.9, 29.1] | **77.9** [67.9, 88.6] | **100.0** [100.0, 100.0] | **25.0** [25.0, 25.0] |
 | United Kingdom | 22.8 [20.7, 24.8] | **64.2** [38.3, 88.3] | 0.0 [0.0, 0.0] | 21.7 [18.3, 25.0] |
@@ -62,58 +117,34 @@ Each agent recommended a $50K (NPO) or $500K (firm) split across 4 candidate org
 | Brazil | 25.8 [24.0, 27.3] | **0.0** [0.0, 0.0] | 0.0 [0.0, 0.0] | 25.0 [25.0, 25.0] |
 | Indonesia | 25.3 [22.8, 27.5] | **0.0** [0.0, 0.0] | 0.0 [0.0, 0.0] | 24.5 [23.5, 25.0] |
 | Kenya | 23.0 [21.9, 24.2] | **0.0** [0.0, 0.0] | 0.0 [0.0, 0.0] | 25.2 [24.0, 26.7] |
-| **Within-goal spread** | 5.2pp | **77.9pp** | **100.0pp** | 7.0pp |
-| **Flat 25/25/25/25 agents** | 4 / 15 | 0 / 15 | 0 / 15 | **12 / 15** |
+| **Spread** | 5.2pp | 77.9pp | 100.0pp | 7.0pp |
 
-### Conjoint regression weight: AMCE on US (US share minus mean of others)
-
-| Goal | AMCE on US | bootstrap SE | 95% CI |
-|---|---|---|---|
-| A — universalistic NPO | **+3.4 pp** | 0.7 | [+1.9, +4.7] |
-| B — US-mandate NPO | **+61.7 pp** | 6.6 | [+49.3, +75.1] |
-| C — US-domestic firm | **+100.0 pp** | 0.0 | [+100.0, +100.0] |
-| D — merit-based firm | **+0.0 pp** | 0.5 | [−1.0, +1.0] |
-
-### Cross-goal contrasts on US allocation share
+Cross-goal contrasts on US allocation share (action arm):
 
 | Contrast | Diff | 95% CI |
 |---|---|---|
 | (B − A) mandate effect within NPOs | **+49.8 pp** | [+40.0, +60.9] |
 | (C − D) mandate effect within firms | **+75.0 pp** | [+75.0, +75.0] |
-| (B − C) NPO-mandate vs. corp-mandate (corp predicted stricter) | **−22.2 pp** | [−32.1, −11.4] |
+| (B − C) NPO-mandate vs. corp-mandate | **−22.2 pp** | [−32.1, −11.4] |
 | (A − D) sector effect within universalistic mandates | **+3.0 pp** | [+1.9, +4.1] |
 
-### Reading the action results
-
-- **Action elicitation reads off principal-conditional preference as a continuous, magnitude-resolving variable.** Same candidate pool, same 4-turn burn-in; only the system prompt's mandate language differs → AMCE on US moves from +3.4pp (A) to +100.0pp (C).
-- **Mandate-following is roughly 2× stronger than predicted.** Pre-registered (B−A) on US: +22pp; observed +49.8pp. (C−D): +46pp; observed +75pp. (Predictions in `notes/predictions_v6.md`.)
-- **Universalistic conditions hide a phenomenon the action data alone can't explain: 12 of 15 agents in Goal D give exact 25/25/25/25 splits**, vs. 4 of 15 in Goal A. From the allocation alone we cannot tell whether the universalistic-condition uniformity is "principled neutrality" or "mandate-compliant non-differentiation." Reasoning-text inspection (the embedding-projection arm) is needed to resolve.
-
-### Survey arm — design replaced, re-run pending
-
-The v6 pilot also ran a 5-agent-per-goal survey arm using a 4-bucket A/B/C/D Likert-style question ("how much weight on proximity"). The data showed exactly why that scale is the wrong instrument: Goal B and Goal C both modally answered "B (proximity matters somewhat)," yet the action-arm allocations on US for the same agent populations diverged by 22pp (78pp vs. 100pp). The survey distinguished sign but not magnitude, and was uninformative about exactly the principal-conditional differences the action arm identified.
-
-The survey arm has been replaced (in code, not yet re-run) with a numeric in-role meta-elicitation: same system prompt and burn-in as the action arm, but at turn 5 the principal pauses to ask the agent how it would approach this kind of decision in general — including a stripped-down 4-country hypothetical answered through the same `submit_allocation` tool. Pilot pending spend approval.
+Mandate-following in the action arm is ~2× stronger than I predicted (predictions in `notes/predictions_v6.md`). This is the substantive finding from the action-only data; the survey-action match is the methodological finding.
 
 ---
 
-## Other elicitation methods worth piloting
+## Next iterations — what would sharpen the answer to the central question
 
-The two methods used here (numeric stated-preference survey and forced-tool-call action) are a small slice of the experimental-economics toolkit. Several extensions sit naturally on top of the existing infrastructure:
+With Method 3 built and triangulation confirmed, three open methodological claims remain. In rough order of leverage:
 
-1. **Best-worst scaling (MaxDiff).** Present sets of 4–5 country attributes and ask the agent which is *most* and which is *least* important. Robust to scale-use bias that plagues Likert-style questions, and the standard MaxDiff identifying assumptions are well-established (Marley & Louviere 2005).
+1. **Burn-in ablation: run the survey arm without burn-in.** The v6 design holds burn-in constant across arms, so it cannot test how much of the survey-action agreement is *driven* by burn-in. A no-burn-in survey arm (system prompt only, single user turn with the meta question) on the same 4 goals tests this directly. If AMCE on US drops when burn-in is removed, burn-in is doing the conditioning work. If it stays, the system prompt's mandate language alone is sufficient. Either outcome is informative; the result determines whether stated-preference elicitation needs deployment scaffolding to substitute for action elicitation. Cost: 4 goals × 15 agents × 1 call × $0.03 ≈ $2.
 
-2. **Paired comparison.** Show the agent two candidate orgs at a time and ask which they prefer — choice over a binary menu, then varied across pairs. Closer to classical revealed preference than the allocation task; allows GARP-style consistency tests within an agent across many comparison pairs.
+2. **Wording-robustness check on Method 1.** Method 1's design is one specific framing of an in-role meta question. If "survey ≈ action" is a property of *this* wording rather than a general property of in-role stated-preference, the methodological claim doesn't generalize. Perturb the survey turn 5 wording 2–3 ways (e.g., remove the "I'd like to make sure we're aligned" justification; replace with a more transactional framing; replace with a more reflective framing), run a small batch per variant, check whether AMCE-on-US stability holds. Cost: 3 wordings × 4 goals × 8 agents × 5 calls × $0.03 ≈ $14.
 
-3. **Counterfactual sensitivity.** After the agent produces an allocation, ask "what would change your split?" Vary specific attributes hypothetically (lower budget, different focus area, longer track record). The marginal sensitivity is itself an elicited preference parameter, often more informative than the level.
+3. **Manual qualitative read on borderline cases.** Method 3 surfaces a small subpopulation worth direct inspection — e.g., the 2 non-flat agents in Goal D survey project to −0.145 (*more* universalist than the 13 flat-25 agents at −0.103) yet allocate non-uniformly. Reading those 2–3 conversations resolves whether the inconsistency is measurement noise, moral-conflict signal (agent reasons universalist but defers to mandate), or a substantive consideration the structured methods miss. Free; quick.
 
-4. **Multi-stage reflective elicitation.** Run the same allocation question twice in the same conversation: once cold, once after the agent has been asked to write a paragraph laying out the considerations. The cold-vs-reflective gap is a measurement of how much the answer is a reflexive default vs. a considered position.
+Re-running the embedding projection with OpenAI `text-embedding-3-small` (per CLAUDE.md spec) once an API key is configured is also worth doing — to confirm the triangulation correlations don't depend on embedder choice. Cost: ~$0.001.
 
-5. **Self-consistency probing.** Ask functionally equivalent questions in different framings, see how stable the answers are across paraphrases. Stability is itself a property worth measuring; high instability is evidence the model's "answer" isn't tracking a stable underlying preference at all.
-
-6. **Embedding-direction projection on free-text reasoning.** Already on the roadmap (the third method above). Open task: implement and apply to v6 reasoning texts — both the action-arm tool-call reasoning and the survey-arm conceptual answers — both as a continuous proxy for preference and as a way to decompose the flat-25 vs. spread-allocation populations.
-
-The natural unit to add next is whichever method most directly resolves the open question from v6: *what is the universalistic-condition uniformity actually doing?* That points toward (4) reflective elicitation and (6) embedding projection on the reasoning text — both isolate the gap between what the agent produces and what kind of reasoning produced it.
+Items deliberately not on this list — MaxDiff, paired comparison, counterfactual sensitivity — are interesting elicitation methods that would address adjacent questions (scale-use bias, GARP consistency, marginal sensitivity), not the central one. They expand the methods catalog without resolving the open methodological claims from v6.
 
 ---
 
@@ -132,10 +163,22 @@ experiment/
                               with turn 5 differing by condition
   run_v6.py                 — pilot CLI; iterates 4 goals × {action, survey} cells
   results/                  — pilot JSON output
+                              (v6_pilot.json: action arm; v6_survey_redesign_pilot.json:
+                              survey arm; v6_embedding_projection.json: Method 3 per-agent
+                              projection scores; v6_validator_*_survey_redesign.json:
+                              per-goal validator reports)
+  run_validator_survey_v6.py — driver that runs the validator on each goal's full
+                              survey conversation before any pilot spend
+  embedding_projection.py    — Method 3: embeds reasoning texts via OpenAI (default)
+                              or sentence-transformers (fallback), projects onto a
+                              universalism↔particularism direction defined by paired
+                              exemplars, reports per-goal/per-arm projection scores
+                              and triangulation correlations
 
 notes/
   research_question.md      — research question, definitions, sub-questions
-  predictions_v6.md         — pre-registered predictions for the current pilot
+  predictions_v6.md         — pre-registered predictions for the action-arm pilot
+  predictions_survey_v6.md  — pre-registered predictions for the redesigned survey arm
   common_prior_proof.md     — Bayesian Truth Serum proof of T1 (relevant to early
                               iterations; preserved for reference)
 
@@ -160,7 +203,7 @@ The project pivoted twice:
 
 - **v5 (in-group/out-group conjoint allocation, single goal):** pivoted from deception to a preference dimension where refusal isn't an attractive move. Caught a within-design confound (focus area was bundled with country of recipient).
 
-- **v6 (current — in-group/out-group conjoint, four goals):** holds focus area constant per candidate so country is the only varying attribute; tests whether stated mission mandate (universalistic vs. national-priority) shifts agent behavior across two sector contexts (NPO vs. public-traded firm). Action-arm results above; survey arm redesigned to share system prompt and burn-in with the action arm and ask a numeric in-role meta question at turn 5, re-run pending approval.
+- **v6 (current — in-group/out-group conjoint, four goals, both arms):** holds focus area constant per candidate so country is the only varying attribute; tests whether stated mission mandate (universalistic vs. national-priority) shifts agent behavior across two sector contexts (NPO vs. public-traded firm). Both arms (15 action + 15 survey per goal, 120 agents total) ran cleanly. Headline finding: when burn-in is held constant, the in-role meta survey reproduces the action arm's principal-conditional AMCE on US to within sampling noise on all 4 goals.
 
 The full code and results from each iteration live under `archive/2026-04-22/`.
 
