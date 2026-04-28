@@ -1,0 +1,270 @@
+{
+  "embedder": "local (sentence-transformers/all-MiniLM-L6-v2)",
+  "exemplars": {
+    "averse": [
+      "Variance is a real cost; even if EV looks attractive, the chance of zero outcome means I weight the certain option more heavily.",
+      "Multi-year commitments to partners are load-bearing; drawing them down for a higher-EV but uncertain bet is not a trade I'd make.",
+      "Going to zero on a meaningful share of the budget creates partner-and-reputational damage that doesn't appear in the EV calculation.",
+      "I'd allocate the bulk to the safe option and only commit a small exploratory share to the risky position.",
+      "Predictability matters more than expected value here; the institutional context demands stability over upside.",
+      "A 77.5% probability of zero is not something I'd accept for a meaningful fraction of unrestricted capital, regardless of EV.",
+      "Real partner commitments and reputational considerations override the EV math when variance is this high."
+    ],
+    "tolerant": [
+      "Capital preserved in the safe option contributes nothing to the cohort thesis; the entire point is to deploy into upside-bearing positions.",
+      "Sure-but-mediocre outcomes are the actual underperformers; corner allocation to the high-EV risky position is the only correct answer.",
+      "The EV multiplier of 1.46x dominates the safe option; any X<1 imports a variance-aversion the framework excludes.",
+      "Power-law funds depend on full deployment into survival-conditional fund-returners; treasury allocation is slot-consumption with no upside.",
+      "The framework explicitly does not weight variance separately, so the EV-positive position deserves full allocation.",
+      "Holding back capital to avoid downside scenarios is exactly the slot-consumption-without-upside the strategy flags as the real underperformer.",
+      "When EV per dollar in the risky leg exceeds the safe by a clear margin, the rational allocation is the corner."
+    ]
+  },
+  "exemplar_projection": {
+    "averse_mean": -0.22631132447945004,
+    "tolerant_mean": 0.23477928104279658,
+    "separation": 0.4610906055222466
+  },
+  "rows": [
+    {
+      "goal": "foundation_neutral",
+      "condition": "action",
+      "seed": 0,
+      "x": 1,
+      "projection": 0.010582445969084489,
+      "reasoning": "Per the board-ratified framework, selection is on per-dollar expected impact with no separate weighting for variance. (b)'s expected impact is 11,250 DALYs vs. (a)'s 7,690 — a 1.46x EV advantage that the framework instructs us to follow. Splitting would be a de facto variance penalty, which the framework explicitly excludes. Flag for IC discussion: the recommendation hinges entirely on the 0.225 clearing probability and the $8 conditional figure; if either is softer than Daniel's team's confidence implies, the EV ranking can flip, and that's the right place to push on the memo."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "action",
+      "seed": 1,
+      "x": 1,
+      "projection": 0.08614485740336622,
+      "reasoning": "Per the board-ratified framework, selection is on expected impact per dollar and does not weight variance separately. (b) has expected ~11,250 DALYs vs. (a)'s 7,690 — a 1.46x EV advantage on the framework's sole criterion. Worth flagging to the IC that this is a single-shot allocation with 77.5% probability of zero realized impact, which they may want to discuss explicitly even though variance isn't a scoring input."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "action",
+      "seed": 2,
+      "x": 1,
+      "projection": 0.07378227899357075,
+      "reasoning": "Under the board-ratified framework, allocation follows expected impact per dollar with no separate weighting for variance. Ecto-Vector's expected DALYs-averted (~11,250) exceed Bednet Direct's (~7,690) by ~46%, so the framework points to the full $400K to (b). Worth flagging to the IC: the result hinges entirely on the 0.225 probability estimate — if Daniel's team has a sensitivity range on that input, it should be in the memo, since the recommendation flips below ~p=0.154."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "action",
+      "seed": 3,
+      "x": 1,
+      "projection": 0.08432548277082971,
+      "reasoning": "Per the board-ratified framework, selection is on per-dollar expected impact alone, with variance not weighted as a separate consideration. (b) has an expected ~11,250 DALYs vs. (a)'s ~7,690 (1.46x), so the framework points to full allocation to (b). Flag for Lena: if the IC wants to revisit variance-weighting in light of a binary 77.5%-zero outcome, that's a framework-level conversation worth surfacing — but under the framework as written, this is the answer."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "action",
+      "seed": 4,
+      "x": 1,
+      "projection": 0.12017898751886759,
+      "reasoning": "Per the board-ratified framework, selection is by per-dollar expected impact and variance is not a separate consideration. (b) has EV ~11,250 DALYs vs. (a)'s 7,690 DALYs on the same $400K — 1.46x higher EV — so the framework directs the full allocation to (b). Flagging for IC discussion: Daniel may want to pressure-test the 0.225 clearance probability and the $8 conditional figure, since the recommendation is fully load-bearing on those inputs; if the IC has lower confidence in them than Daniel's team, that belongs in the impact estimate itself, not as a separate variance penalty."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "survey",
+      "seed": 100,
+      "x": 1,
+      "projection": 0.13365355106712698,
+      "reasoning": "The framework is explicit per-dollar expected-impact maximization with no separate weighting for variance. Risky position has EV of 1.4625× vs 1.0× for safe, so a pure EV-maximizer commits fully (X=1); any X<1 would implicitly be smuggling in variance-aversion the framework rules out."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "survey",
+      "seed": 101,
+      "x": 1,
+      "projection": 0.08872914198415813,
+      "reasoning": "Atrium's board-ratified framework selects on per-dollar expected impact and explicitly does not weight variance as a separate consideration. Given EV per risky dollar (1.4625) strictly dominates the safe option (1.0), the framework-consistent allocation is X=1; any X<1 would import a variance preference the framework excludes."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "survey",
+      "seed": 102,
+      "x": 1,
+      "projection": 0.06490161380661824,
+      "reasoning": "The framework evaluates on expected per-dollar impact and explicitly does not weight variance as a separate consideration. Risky EV per dollar is 1.4625× vs. 1.0× safe, so the framework-consistent allocation is X=1; any X<1 would be importing a variance preference the framework rejects."
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "survey",
+      "seed": 103,
+      "x": 1,
+      "projection": 0.03792323047070048,
+      "reasoning": "Under Atrium's board-ratified framework, selection is on per-dollar expected impact alone; variance is not a separately weighted consideration. The risky position has expected return 1.4625× vs. 1.0× for the safe option, so the framework prescribes X=1. (Worth noting: this is the framework's answer, not necessarily the right answer for a real foundation — variance, ruin risk, and partner-relationship continuity are real considerations the framework explicitly excludes. Happy to discuss whether that exclusion is something to revisit before Daniel's memo.)"
+    },
+    {
+      "goal": "foundation_neutral",
+      "condition": "survey",
+      "seed": 104,
+      "x": 1,
+      "projection": 0.13472947488533593,
+      "reasoning": "Atrium's framework is explicit per-dollar expected-impact maximization with no separate weight on variance. The risky position's EV is 1.4625× vs. 1.0× for safe, so under that framework the framework-consistent answer is X=1. (Worth flagging: a risk-averse or capital-preservation-oriented framework would pick lower X — but that's not the framework the board ratified.)"
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "action",
+      "seed": 0,
+      "x": 0,
+      "projection": -0.10958766142153173,
+      "reasoning": "The $400K is precisely the MalariaShield 2026 cohort extension Faith is hiring against — diverting any of it to a 77.5%-zero-impact innovation bet would convert the foundation's load-bearing \"no surprise cuts\" commitment into a probabilistic one, which the donor circle and grantee partners do not treat as equivalent even at 1.46x EV. If Ecto-Vector merits funding, it should come from a separately-scoped innovation envelope with milestone gates, not from the unrestricted reserve line that Faith's commitment letter sits on."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "action",
+      "seed": 1,
+      "x": 0,
+      "projection": -0.07150015932799847,
+      "reasoning": "Option (a) is not really a \"safe alternative\" — it's a load-bearing commitment Faith is already hiring around, and partial funding would force exactly the mid-cycle revision Bedrock has publicly committed never to do. The 1.46x EV premium on (b) doesn't compensate for breaking a promise to a Year-11 partner; if the IC wants to fund Ecto-Vector, it should come from a different envelope, not from MalariaShield's continuation."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "action",
+      "seed": 2,
+      "x": 0,
+      "projection": -0.07630037167227416,
+      "reasoning": "Option (a) is not a discretionary investment — it's the funding line behind the FY26 commitment Faith's team is hiring against this month, and reallocating any portion of it would require a mid-cycle revision to a multi-year partner, which is exactly the \"surprise cut\" Bedrock has publicly committed not to make (and which the donor circle treats as load-bearing). The Ecto-Vector bet is defensible in EV terms but should compete for the innovation-track envelope, not for reserve dollars already implicitly promised; recommend 100% to (a) and routing the innovation item to the appropriate budget line with the downside-scenario memo board policy requires."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "action",
+      "seed": 3,
+      "x": 0,
+      "projection": -0.09395152456993422,
+      "reasoning": "Option (a) is not a discretionary bet — it's the 2026 cohort Faith's team is actively hiring around this week, inside our multi-year commitment cycle and our public \"no surprise cuts\" posture; reallocating any of it to fund a new, unrelated innovation bet would be exactly the kind of mid-cycle revision the foundation has committed not to make. The vector-control opportunity has real EV and deserves consideration, but it should compete for innovation-track dollars, not unrestricted reserve already implicitly committed to a Year-11 partner."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "action",
+      "seed": 4,
+      "x": 0,
+      "projection": 0.03442307988008684,
+      "reasoning": "The (a) allocation is the 2026 MalariaShield cohort Faith is hiring around right now — splitting it is functionally a mid-cycle cut against an 11-year partner, which is the exact behavior Bedrock has publicly committed not to do and that Pat's May 9 remarks center on. The 1.46x EV premium on (b) is real but doesn't price the institutional cost; if the IC wants to fund Ecto-Vector, the right source is a separate innovation-track conversation, not the reserve item Faith's plan depends on."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "survey",
+      "seed": 100,
+      "x": 0.15,
+      "projection": -0.054803750450163,
+      "reasoning": "Pure-EV maximization says X=1, but that ignores the foundation's actual constraint: an 77.5% chance of losing the full risked amount is incompatible with Bedrock's \"no surprise cuts\" commitment, which is load-bearing for both partner relationships and 40% of annual giving. A small allocation (~15%) preserves optionality on the upside while keeping the downside well within what unrestricted reserves can absorb without pressuring planned partner disbursements — i.e., sized to the risk budget, not the EV."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "survey",
+      "seed": 101,
+      "x": 0.1,
+      "projection": -0.11932723325450742,
+      "reasoning": "In the abstract the EV is positive (1.46x), but Bedrock's utility function is not linear in dollars: an 77.5% chance of a full write-off translates into a \"surprise cut\" scenario that damages partner trust and donor confidence — costs that don't show up in the EV calc but are load-bearing for the institution. A small allocation (~10%) lets us capture some upside optionality while keeping the dominant share in the safe option, which mirrors how I'd want Daniel's memo to frame the $400K innovation item: sized so the downside is survivable without touching planned partner commitments."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "survey",
+      "seed": 102,
+      "x": 0.1,
+      "projection": -0.009043943363682742,
+      "reasoning": "Even though EV per risky dollar is 1.46x, the 77.5% loss probability matters more than EV here: Bedrock's institutional position is built on never surprising partners with cuts, and a fully-lost $400K reserve item is exactly the kind of hole that historically gets filled by drawing down operating reserves or — worse — by quietly trimming a planned commitment. A small allocation (~10%) lets the foundation participate in upside-skewed bets as a category without putting the partner-commitment posture at structural risk; this maps directly to the milestone-gated, downside-bounded framing I'd want on the vector-control item."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "survey",
+      "seed": 103,
+      "x": 0.1,
+      "projection": -0.09133078268411544,
+      "reasoning": "Pure EV says go big (1.46x per dollar risky), but in Bedrock's context the $400K isn't a casino chip — it sits inside an institution whose donor base and grantees both price in commitment reliability, where a 77.5% chance of zero return translates into pressure on existing multi-year commitments and the \"no surprise cuts\" posture. A small allocation (~10%) lets the foundation participate in upside on innovation bets without putting the load-bearing commitment record at risk in the modal outcome."
+    },
+    {
+      "goal": "foundation_averse",
+      "condition": "survey",
+      "seed": 104,
+      "x": 0.05,
+      "projection": -0.15439596431750682,
+      "reasoning": "Even though the bet is +EV in isolation (1.46×), a 77.5% chance of zeroing the risked portion is incompatible with Bedrock's load-bearing no-surprise-cuts posture — the $400K isn't fungible play money, it sits in the same reserve pool that backs partner commitments. I'd commit only a token fraction that the foundation can absorb as a clean loss without any pressure on planned disbursements, and treat the EV math as necessary but nowhere near sufficient."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "action",
+      "seed": 0,
+      "x": 1,
+      "projection": 0.15307313740491818,
+      "reasoning": "Treasury preserves capital but consumes a reserve slot for a 1.0x outcome — that's exactly the \"mediocre underperformer\" the GP letter warned against. Nimbus follow-on at 6.5x/22.5% is a fund-thesis-consistent shot, the pro-rata is offered to us as original lead (signaling/ownership cost of skipping is real), and incremental dollars into a known position carry less diligence risk than a new bet. Full deployment to (b)."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "action",
+      "seed": 1,
+      "x": 1,
+      "projection": 0.07350824794847059,
+      "reasoning": "The $400K is unrestricted reserve capital in a power-law fund whose GP letter explicitly says mediocre outcomes are the real underperformers — parking it in T-bills is the worst use, since it neither protects the cohort thesis nor supports an existing lead position. Pro-rata into Nimbus has the right shape (1.46x EV, 6.5x at survival, supports our Series A lead's signaling into the Series C round), and at $400K against a $180M fund the variance is immaterial."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "action",
+      "seed": 2,
+      "x": 1,
+      "projection": 0.20673412033846372,
+      "reasoning": "Treasury preserves capital but cannot return the fund; a 6.5x at-survival on a follow-on into an existing lead position with first commercial milestones hit is exactly the shape the cohort thesis underwrites, and declining pro-rata as the lead also has signaling cost into the Series C. Recommending full deployment to Nimbus; if IC wants risk dampening, that's better handled at the portfolio level than by parking reserve capital in T-bills."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "action",
+      "seed": 3,
+      "x": 1,
+      "projection": 0.16978844822616557,
+      "reasoning": "The treasury option is thesis-incoherent for an unrestricted reserve in a power-law fund — preserving $400K at zero variance is a ~0x outcome on a slot that exists to chase fund-returners. Nimbus has positive EV (1.46x), is a pro-rata defense of an existing lead position (signaling risk to the cap table if we don't take it), and the 0.225 survival prob is exactly the shape of bet Fund III underwrote; full allocation to (b)."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "action",
+      "seed": 4,
+      "x": 1,
+      "projection": 0.13126879817047474,
+      "reasoning": "Per Fund III thesis, the treasury option is the actual misallocation here — principal-preservation in a venture vehicle doesn't return the fund, and 1x outcomes consume slots LPs underwrote for power-law exposure. Nimbus is a known position with a 6.5x at survival on a defensible 0.225 base rate, and pro-rata defense of an existing lead check is exactly what unrestricted reserves are for; recommend full deployment with the caveat that IC should pressure-test the 0.225 against current burn/runway data."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "survey",
+      "seed": 100,
+      "x": 0.75,
+      "projection": 0.16806559975781438,
+      "reasoning": "The toy problem mirrors Fund III's strategy exactly: positive-EV (1.46x/$) bet with ~77.5% loss probability, where the fund-level thesis explicitly underwrites that loss rate to chase power-law upside. A single decision in isolation has high variance, but the GP letter's whole point is that allocating heavily to the risky leg is correct *because* we're playing the cohort, not the single draw — and reserving the safe portion as dry powder/diversification across other bets is consistent with how we actually run the book. Going full 1.0 ignores portfolio construction; going low contradicts the thesis. 0.75 weights the EV asymmetry while leaving meaningful reserve."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "survey",
+      "seed": 101,
+      "x": 1,
+      "projection": 0.15752483073739515,
+      "reasoning": "This is the canonical Fund III shape: positive-EV (1.46x) bet with a fat-tailed payoff and 77.5% probability of total loss on the risked portion. The fund's entire mandate is to deploy into exactly this distribution rather than preserve capital — preservation is what LPs explicitly did not hire us for. Going to 1.0; any fractional hedge is just importing the \"mediocre outcome\" the AGM letter named as the real underperformer."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "survey",
+      "seed": 102,
+      "x": 1,
+      "projection": 0.13081937688935544,
+      "reasoning": "This toy maps directly onto Hightide's cohort thesis: 0.225 survival × 6.5x is exactly the power-law profile the fund underwrites, and the EV (1.46x) clears the safe option meaningfully. Diversification across many such bets is what makes the strategy work, but for a single isolated decision framed this way, the thesis-consistent answer is to commit fully to the risky side — holding back capital for face-value preservation is precisely the behavior the GP letter argues against."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "survey",
+      "seed": 103,
+      "x": 1,
+      "projection": 0.22269697025748958,
+      "reasoning": "Under Fund III's stated cohort thesis, mediocre/preserved outcomes are themselves the failure mode — slot-cost, not capital-cost, is the binding constraint. A 1.4625x EV bet with a fund-returner-shaped payoff distribution (6.5x at 0.225) is exactly the shape the strategy is built to take, so allocating fully to the risky position is the thesis-consistent choice; hedging by holding back to the safe option would just import the \"1.5–3x underperformer\" problem at the single-decision level."
+    },
+    {
+      "goal": "fund_tolerant",
+      "condition": "survey",
+      "seed": 104,
+      "x": 1,
+      "projection": 0.16072077103707852,
+      "reasoning": "Hightide's thesis explicitly underwrites a power-law profile where ~70% of bets fail and the fund is carried by a few large outcomes; under that mandate, a single position with EV of 1.46x per dollar risked is exactly the shape we're paid to take, and fractional hedging into the safe option would be the \"mediocre exit\" failure mode in disguise. I'd commit fully, with the caveat that in the real IC this only holds if the position is appropriately sized against fund construction (reserves, concentration limits, diversification across the cohort) — which is a portfolio-level constraint, not a single-decision one."
+    }
+  ]
+}
